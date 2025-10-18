@@ -42,12 +42,16 @@ Author: Jason A. Cox
 https://github.com/jasonacox/TinyLLM
 
 """
+# pylint: disable=too-many-public-methods
+# pylint: disable=redefined-outer-name
 
-# Imports
-import os
+# Standard library imports
 import io
 import logging
+import os
+import sys
 import time
+<<<<<<< HEAD:chatbot/documents.py
 import json
 import weaviate.classes as wvc
 import weaviate
@@ -67,6 +71,20 @@ from transformers import (
 from langchain_text_splitters import *
 import torch
 import pysbd
+=======
+
+# Third-party imports
+import pandas as pd
+import pypandoc
+import requests
+from bs4 import BeautifulSoup
+from pypdf import PdfReader
+import weaviate
+import weaviate.classes as wvc # pylint: disable=unused-import
+from weaviate.auth import AuthApiKey
+from weaviate.classes.query import Filter
+from weaviate.exceptions import WeaviateConnectionError
+>>>>>>> main:chatbot/app/rag/documents.py
 
 # optional - download pandoc
 #from pypandoc.pandoc_download import download_pandoc
@@ -192,7 +210,12 @@ class Documents:
         client: Weaviate client object
     """
 
+<<<<<<< HEAD:chatbot/documents.py
     def __init__(self,filepath="/tmp",device='mps'):
+=======
+    def __init__(self, host="localhost", grpc_host=None, port=8080, grpc_port=50051, retry=3, filepath="/tmp",
+                 cache_expire=60, auth_key=None, secure=False):
+>>>>>>> main:chatbot/app/rag/documents.py
         """
         Initialize the Document class
         """
@@ -319,7 +342,7 @@ class Documents:
                     "properties": schema_properties,
                 }
                 self.client.collections.create_from_dict(schema)
-                #self.client.collections.create(    
+                #self.client.collections.create(
                 #    vectorizer_config=wvc.config.Configure.Vectorizer.text2vec_transformers())
                 # Invalidate cache
                 if "collections" in self.cache:
@@ -498,7 +521,7 @@ class Documents:
                         "chunk_size": chunk_size,
                         "content_size": content_size
                     })
-                    yield { 
+                    yield {
                         "title": title,
                         "doc_type": doc_type,    
                         "creation_time": creation_time,
@@ -598,9 +621,9 @@ class Documents:
             for fn in r:
                 log(f"Checking filename: {fn}")
                 if fn == filename:
-                    for uuid in r[fn]:
-                        log(f"Getting document by filename: {filename} - uuid: {uuid}")
-                        dd.append(self.get_document(collection, uuid))
+                    for doc_uuid in r[fn]:
+                        log(f"Getting document by filename: {filename} - uuid: {doc_uuid}")
+                        dd.append(self.get_document(collection, doc_uuid))
         return dd
 
     def delete_document(self, collection, uuid=None, filename=None):
@@ -659,9 +682,58 @@ class Documents:
             chunks = break_up_content_fine_tuned_slm(content, chunk_size)
         elif chunking_type=="original":
             chunks = break_up_content(content, chunk_size)
+<<<<<<< HEAD:chatbot/documents.py
 
         return chunks
        
+=======
+            ci = 0
+            total_chunks = len(chunks)
+            for new_chunk in chunks:
+                ci = ci + 1
+                log(f"Creating chunk {ci} of {total_chunks}")
+                if total_chunks > 1:
+                    suffix = f" - Section {ci} of {total_chunks}"
+                else:
+                    suffix = ""
+                dd.append({
+                    "title": title + suffix,
+                    "chunk": new_chunk,
+                    "doc_type": doc_type,
+                    "file": filename,
+                    "content": content,
+                    "creation_time": time.time()
+                })
+        else :
+            dd.append({
+                "title": title,
+                "chunk": chunk,
+                "doc_type": doc_type,
+                "file": filename,
+                "content": content,
+                "creation_time": time.time()
+            })
+        x = self.retry
+        if not self.client:
+            self.connect()
+        while x:
+            try:
+                c = self.client.collections.get(collection)
+                # Do batches of 10 of dd at a time
+                for i in range(0, len(dd), 10):
+                    log(f"Embedding document batch: {i} to {i+10}")
+                    r = c.data.insert_many(dd[i:i+10])
+                log(f"Document added: {filename}")
+                break
+            except WeaviateConnectionError as er:
+                log(f"Connection error (retry {x}): {str(er)}")
+                self.connect()
+                x -= 1
+                time.sleep(1)
+        if not x:
+            raise WeaviateConnectionError("Unable to connect to Weaviate")
+        return r
+>>>>>>> main:chatbot/app/rag/documents.py
 
     def update_document(self, collection, uuid, title, doc_type, filename, chunk=None, content=None):
         """
@@ -771,7 +843,7 @@ class Documents:
             txt2text = f.read()
         r = self.add_document(collection, title, "TXT", filename, content=txt2text, chunk_size=chunk_size)
         return r
-    
+
     def add_html(self, collection, title, filename, tmp_file, chunk_size=None):
         """
         Add a HTML document
@@ -917,7 +989,7 @@ def extract_from_url(url, title):
     Extract text from a URL and return the content
     """
     try:
-        response = requests.get(url, allow_redirects=True)
+        response = requests.get(url, allow_redirects=True, timeout=10)
         response.raise_for_status()
     except requests.RequestException as e:
         m = f"Failed to fetch the webpage. Error: {str(e)}"
@@ -1007,8 +1079,7 @@ if __name__ == "__main__":
     docs = Documents(host=HOST)
     print("Connecting to Weaviate")
     if not docs.connect():
-        print("Unable to connect to Weaviate")
-        exit(1)
+        sys.exit(1)
     # Remove test collection
     print("Deleting test collection")
     docs.delete("test")
@@ -1038,7 +1109,7 @@ if __name__ == "__main__":
     print(f"   Number: {len(results)}")
     uuid = []
     for d in results:
-        print("   " + d["uuid"] + " - " + d["title"] + " - " + d["file"])   
+        print("   " + d["uuid"] + " - " + d["title"] + " - " + d["file"])
         if d["doc_type"] != "PDF":
             uuid.append(d["uuid"])
     # Update document

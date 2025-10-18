@@ -162,7 +162,7 @@ cython_debug/
 # LLM Models
 *.gguf
 
-# Exclude sandbox
+# Exclude sandbox and local testing files
 sandbox/
 .DS_Store
 chatbot/prompts.json
@@ -176,6 +176,7 @@ chatbot/tlocal
 chatbot/tt
 lab/t
 chatbot/uploads/?*.*
+<<<<<<< HEAD
 rag/weaviate/docker-compose.yml
 rag/weaviate/docker-compose.yml
 *.yml
@@ -188,3 +189,12 @@ chatbot/weaviate_data/schema.db
 chatbot/weaviate_data/tx.db
 rag/weaviate/docker-compose.yml
 .vscode/launch.json
+=======
+chatbot/t2
+agents/m
+chatbot/d
+images/output.png
+agents/moviebot.db
+agents/message.txt
+chatbot/localtest.sh
+>>>>>>> main

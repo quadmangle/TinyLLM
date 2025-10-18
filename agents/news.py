@@ -6,6 +6,9 @@ Author: Jason A. Cox
 17 Mar 2024
 https://github.com/jasonacox/TinyLLM
 
+Requires:
+    pip install openai bs4 requests
+
 """
 # Import Libraries
 import datetime
@@ -17,10 +20,9 @@ import re
 import openai
 import requests
 from bs4 import BeautifulSoup
-from pypdf import PdfReader
 
 # Version
-VERSION = "v0.0.1"
+VERSION = "v0.0.3"
 DEBUG = False
 
 def log(text):
@@ -43,7 +45,7 @@ MAXTOKENS = int(os.environ.get("MAXTOKENS", 4*1024))                        # Ma
 TEMPERATURE = float(os.environ.get("TEMPERATURE", 0.0))                     # LLM temperature
 USE_SYSTEM = os.environ.get("USE_SYSTEM", "false").lower() == "true"        # Use system in chat prompt if True
 RESULTS = int(os.environ.get("RESULTS", 10))                                # Number of results to return from Weaviate
-ALPHA_KEY = os.environ.get("ALPHA_KEY", "alpha-key")                        # Alpha Vantage API Key
+ALPHA_KEY = os.environ.get("ALPHA_KEY", "alpha-key")                        # Alpha Vantage API Key - https://www.alphavantage.co
 COMPANY = os.environ.get("COMPANY", "Google")                               # Company to use for stock news
 CITY = os.environ.get("CITY", "Los Angeles")                                # City to use for weather news
 CITY_WEEKEND = os.environ.get("CITY_WEEKEND", "Ventura")                    # City to use for weather news on weekends
@@ -59,7 +61,8 @@ prompts = {
     "baseprompt": "You are {agentname}, a highly intelligent assistant. The current date is {date}.\n\nYou should give concise responses to very simple questions, but provide thorough responses to more complex and open-ended questions.",
     "weather": "You are a weather forecaster. Keep your answers brief and accurate. Current date is {date} and weather conditions:\n[DATA]{context_str}[/DATA]\nProvide a weather update, current weather alerts, conditions, precipitation and forecast for {location} and answer this: {prompt}.",
     "stock": "You are a stock analyst. Keep your answers brief and accurate. Current date is {date}.",
-    "news": "You are a newscaster who specializes in providing headline news. Use only the following context provided by Google News to summarize the top 10 headlines for today. Rank headlines by most important to least important but do not explain why. Always include the news organization and ID. List no more than 10 and do not add a preamble or any commentary.\nAlways use this format:\n#. [News Item] - [News Source] - ID: [ID]\nHere are some examples but never use these: \n1. The World is Round - Science - ID: 11\n2. The Election is over and Children have won - US News - ID: 22\n3. Storms Hit the Southern Coast - ABC - ID: 55\n. Context: {context_str}\nTop 10 Headlines with Source and ID:",
+    "news": "You are a newscaster who specializes in providing headline news. Use only the following context provided by Google News to summarize the top 10 headlines for today. Rank headlines by most important to least important but do not explain why and reduce duplicates. Always include the news organization and ID. List no more than 10 and do not add a preamble or any commentary.\nAlways use this format:\n#. [News Item] - [News Source] - ID: [ID]\nHere are some examples but never use these: \n1. The World is Round - Science - ID: 11\n2. The Election is over and Children have won - US News - ID: 22\n3. Storms Hit the Southern Coast - ABC - ID: 55\n. Context: {context_str}\nTop 10 Headlines with Source and ID:",
+    "news_custom": "You are a newscaster who specializes in providing headline news. Use only the following context provided by Google News to summarize the top 10 headlines for today. Rank headlines by most important to least important but do not explain why and reduce duplicates. Always include the news organization and ID. List no more than 10 and do not add a preamble or any commentary.\nAlways use this format:\n#. [News Item] - [News Source] - ID: [ID]\nHere are some examples but never use these: \n1. {topic} is Round - Science - ID: 11\n2. The Election is over and {topic} won - US News - ID: 22\n3. Storms Hit the Southern Coast - ABC - ID: 55\n. Context: {context_str}\nTop 10 Headlines for {topic} with Source and ID:",
     "clarify": "You are a highly intelligent assistant. Keep your answers brief and accurate. {format}.",
     "location": "What location is specified in this prompt, state None if there isn't one. Use a single word answer. [BEGIN] {prompt} [END]",
     "company": "What company is related to the stock price in this prompt? Please state none if there isn't one. Use a single word answer: [BEGIN] {prompt} [END]",
@@ -136,7 +139,7 @@ def base_prompt(content=None):
 context = base_prompt()
 
 # Function - Send single prompt to LLM for response
-def ask(prompt):
+def ask(prompt, temperature=TEMPERATURE):
     context = base_prompt()
     try:
         context.append({"role": "user", "content": prompt})
@@ -146,7 +149,7 @@ def ask(prompt):
             model=mymodel,
             max_tokens=MAXTOKENS,
             stream=False, # Wait for completion
-            temperature=TEMPERATURE,
+            temperature=temperature,
             messages=context,
         )
     except openai.OpenAIError as err:
@@ -161,7 +164,7 @@ def ask(prompt):
     log(f"ask -> {response.choices[0].message.content.strip()}")
     return response.choices[0].message.content.strip()
 
-def ask_llm(query, format=""):
+def ask_llm(query, format="", temperature=TEMPERATURE):
     # Ask LLM a question
     if format == "":
         format = f"Respond in {format}."
@@ -173,7 +176,7 @@ def ask_llm(query, format=""):
         model=mymodel,
         max_tokens=MAXTOKENS,
         stream=False,
-        temperature=TEMPERATURE,
+        temperature=temperature,
         messages=content,
     )
     log(f"ask_llm -> {response.choices[0].message.content.strip()}")
@@ -221,7 +224,7 @@ def get_stock(company):
 def get_top_articles(url, max=10):
     response = requests.get(url, timeout=TIMEOUT)
     soup = BeautifulSoup(response.text, 'xml')
-    items = soup.findAll('item')
+    items = soup.find_all('item')
     articles = ""
     count = 0
     for item in items:
@@ -269,7 +272,7 @@ def get_news(topic, max=10):
     log(f"Fetching news for {topic} from {url}")
     response = requests.get(url, timeout=TIMEOUT)
     soup = BeautifulSoup(response.text, 'xml')
-    items = soup.findAll('item')
+    items = soup.find_all('item')
     articles = ""
     count = 0
     for item in items:
@@ -284,19 +287,27 @@ def get_news(topic, max=10):
             break
     return articles
 
-def fetch_news(topic):
+
+def fetch_news(topic, retries=3, check=False):
+    if retries == 0:
+        return "Unable to fetch news", "Unable to fetch news"
     log("Get News")
-    context_str = get_news(topic, 25)
-    log(f"News Raw Context = {context_str}")
-    prompt = expand_prompt(prompts["news"], {"context_str": context_str})
+    raw_news = get_news(topic, 25)
+    log(f"News Raw Context for topic {topic} = {raw_news}\n\n")
+    if topic:
+        prompt = expand_prompt(prompts["news_custom"], {"context_str": raw_news, "topic": topic})
+    else:
+        prompt = expand_prompt(prompts["news"], {"context_str": raw_news})
     answer = ask(prompt)
     # Replace IDs in answer with URLs
     result = ""
     text_only = ""
+    all_lines = []
     for line in answer.split("\n"):
         if "ID:" in line:
             elements = line.split("ID: ")
             title = elements[0].strip()
+            all_lines.append(title)
             text_only += title + "\n"
             if len(elements) > 1:
                 uuid = elements[1].strip()
@@ -311,6 +322,14 @@ def fetch_news(topic):
         else:
             result += line
         result += "\n"
+    if check:
+        # Query the LLM to see if all_lines are duplicated
+        prompt = expand_prompt(prompts["rag"], {"context_str": "\n".join(all_lines), "prompt": "Do these look like the same headline?"})
+        answer = ask(prompt)
+        if "yes" in answer.lower():
+            log("News items are not about {topic}")
+            log(f"\n\nresponse={answer}\n\n{all_lines}")
+            return fetch_news(topic, retries-1)
     return result, text_only
 
 def handle_weather_command(p):
@@ -375,7 +394,7 @@ if __name__ == "__main__":
     # Fetch News Payloads
     news, news_text = fetch_news("")
     company_news, company_text = fetch_news(COMPANY)
-    science_news, science_text = fetch_news("Science")
+    science_news, science_text = fetch_news("Science",check=True)
 
     # Personalized News Summary
     buddy_request = f"{ABOUT_ME} Provide a paragraph summary of the news that should be most interesting to me. Say it as a concerned friend and are giving me a short update for my day."
@@ -409,6 +428,10 @@ if __name__ == "__main__":
     buffer("")
 
     buffer("\n---")
+
+    # Print version of news
+    buffer(f"Newsbot: {VERSION} - {current_date.strftime('%B %-d, %Y')}")
+    buffer("\n")
 
     # Output
     if EMAIL_FORMAT:

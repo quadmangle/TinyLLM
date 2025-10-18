@@ -197,6 +197,17 @@
         .dialogue-button:hover {
             background-color: #0056b3;
         }
+        .dialogue-button-cancel {
+            padding: 10px 20px;
+            background-color: #dc3545;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .dialogue-button-cancel:hover {
+            background-color: #c82333;
+        }
         .button-container {
             display: flex;
             flex-direction: column;
@@ -222,6 +233,12 @@
         .prompt-value {
             width: calc(100% - 10px);
             height: 40px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 5px;
+        }
+        .select-value {
+            width: calc(100% - 10px);
             border: 1px solid #ccc;
             border-radius: 5px;
             padding: 5px;
@@ -281,8 +298,8 @@
                     <div class="popup-button-container">
                         <div id="popup-buttons">
                             <button type="button" class="dialogue-button" id="saveButton" onclick="saveSettings()">Save</button> 
-                            <button type="button" class="dialogue-button" onclick="closeDialogue()">Cancel</button> 
                             <button type="button" class="dialogue-button" id="resetButton" onclick="resetSettings()">Reset</button>
+                            <button type="button" class="dialogue-button-cancel" onclick="closeDialogue()">Cancel</button> 
                         </div>
                     </div>
                 </form>
@@ -300,17 +317,70 @@
                     <div class="popup-divider"></div>
                     <div class="popup-button-container">
                         <div id="popup-buttons">
-                            <button type="button" class="dialogue-button" onclick="closeDialogue()">Close</button>
                             <button type="button" class="dialogue-button" onclick="convCopy()">Copy</button>
+                            <button type="button" class="dialogue-button-cancel" onclick="closeDialogue()">Cancel</button>
                         </div>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+    <div class="popup-overlay" id="modelOverlay">
+        <div class="popup-box" style="width: 90%;">
+            <h2 class="popup-title">LLM Models</h2>
+            <div class="popup-content">
+                <p class="popup-content-text">Use dropdown to select a model to use for the chatbot.</p>
+                <form id="modelForm">
+                    <div class="popup-table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th class="leftcolumn">Select Model</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <select id="modelSelect" class="select-value">
+                                            <option value="gpt2">GPT-2</option>
+                                            <option value="gpt3">GPT-3</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <p>
+                                            <strong>Current Model:</strong> <span id="currentModel">FPO</span>
+                                        </p>  
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>  
+                                        <p>
+                                            <strong>List of Models:</strong> <br>
+                                            <span id="modelList">FPO</span>
+                                        </p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </form>
+                <div class="popup-divider"></div>
+                <div class="popup-button-container">
+                    <div id="popup-buttons">
+                        <button type="button" class="dialogue-button" onclick="saveModel()">Select</button>
+                        <button type="button" class="dialogue-button-cancel" onclick="closeDialogue()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
+
         // Pop-up dialogue functions
 
+        // Function to open the settings dialogue
         function openDialogue() {
             document.getElementById("dialogueOverlay").style.display = "flex";
             // First clear the form from any previous settings
@@ -341,18 +411,69 @@
                 });
         }
 
+        // Function to open the model selection dialogue
+        function openModelDialogue() {
+            console.log('Opening model dialogue');
+            document.getElementById("modelOverlay").style.display = "flex";
+            // First clear the form from any previous settings
+            const modelSelect = document.getElementById('modelSelect');
+            modelSelect.innerHTML = '';
+            // Fetch the current models and populate the form
+            fetch('/models')
+            .then(response => response.json())
+            .then(data => {
+                const currentModel = getModel();
+                document.getElementById('currentModel').textContent = currentModel;
+                // List models as bullets
+                const modelList = document.getElementById('modelList');
+                modelList.innerHTML = data.map(model => `<li>${model}</li>`).join('');
+                // Create options for the models
+                data.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model;
+                option.textContent = model;
+                if (model === currentModel) {
+                    option.selected = true;
+                }
+                modelSelect.appendChild(option);
+                });
+            });
+        }
+
+        // Function to read the footer and extract the model
+        function getModel() {
+            const footer = document.getElementById('footer').textContent;
+            const model = footer.split(' - ')[1];
+            return model;
+        }
+
+        // Function to save the selected model
+        function saveModel() {
+            const modelSelect = document.getElementById('modelSelect');
+            const selectedModel = modelSelect.value;
+            console.log('Selected model:', selectedModel);
+            // Send the selected model to server via socketio message
+            socket.emit('model', selectedModel);
+            // Close the dialogue
+            closeDialogue();
+        }
+
+        // Function to highlight the textarea when changed
         function highlightTextarea(textarea) {
             textarea.style.backgroundColor = '#ffffcc';
         }
     
+        // Generic function to close the dialogue
         function closeDialogue() {
             document.getElementById("dialogueOverlay").style.display = "none";
             document.getElementById("debugOverlay").style.display = "none";
+            document.getElementById("modelOverlay").style.display = "none";
             // Set focus back to the text input field
             var textInput = document.getElementById("messageInput");
             textInput.focus();
         }
 
+        // Function to reset the settings to the default values
         function resetSettings() {
             // Verify that the user wants to reset the settings
             if (!confirm('Are you sure you want to reset the settings to the default values?')) {
@@ -377,6 +498,7 @@
                 });
         }
 
+        // Function to save the settings to the server
         function saveSettings() {
             // Combine name and value into a JSON payload
             const payload = {};
@@ -439,6 +561,31 @@
         let startY;
         let startHeight;
 
+        // Function to handle session storage of model
+        function setModel(model) {
+            sessionStorage.setItem('my_model', model);
+            // Also set the model in a cookie
+            document.cookie = `my_model=${model}`;
+        }
+
+        // Function to get the model from session storage
+        function getModel() {
+            // Check to see if there is one in session storage
+            if (!sessionStorage.getItem('my_model')) {
+                // If not, check to see if we have it in the cookie
+                if (document.cookie) {
+                    const cookie = document.cookie.split(';').find(c => c.trim().startsWith('my_model='));
+                    if (cookie) {
+                        const model = cookie.split('=')[1];
+                        sessionStorage.setItem('my_model', model);
+                        return model;
+                    }
+                }
+                return '';
+            }
+            return sessionStorage.getItem('my_model');
+        }
+
         // Image upload functions
         const dropArea = document.getElementById('messageInput');
 
@@ -468,23 +615,23 @@
             console.log('File dropped');
             const files = e.dataTransfer.files;
             if (files.length > 0) {
-            const file = files[0];
-            uploadFile(file);
+                const file = files[0];
+                uploadFile(file);
             }
         }
         function handlePaste(event) {
             // Detect if paste is an image
             const items = (event.clipboardData || event.originalEvent.clipboardData).items;
             for (const item of items) {
-            if (item.kind === 'file' && item.type.includes('image')) {
-                const file = item.getAsFile();
-                uploadFile(file);
-            }
+                if (item.kind === 'file' && item.type.includes('image')) {
+                    const file = item.getAsFile();
+                    uploadFile(file);
+                }
             }
             // Otherwise paste as text
             const text = (event.clipboardData || event.originalEvent.clipboardData).getData('text');
             if (text) {
-            event.target.value += text;
+                event.target.value += text;
             }
             event.preventDefault();
         }
@@ -614,7 +761,7 @@
             // Clear form
             document.getElementById('messageInput').value = "";
 
-            // Send a POST request to the Flask route
+            // Send a POST request to the backend
             fetch('/send_message', {
                 method: 'POST',
                 headers: {
@@ -624,13 +771,19 @@
             })
             .then(response => response.json())
             .then(data => {
-                console.log('Response from Flask:', data);
-                // Handle the response from Flask as needed
+                console.log('Response from backend:', data);
+                // Handle the response from backend as needed
             })
             .catch(error => {
                 console.error('Error:', error);
             });
         }
+
+        // Function to handle model dialog request
+        socket.on('model_dialog', function(data) {
+            console.log('Received model dialog request');
+            openModelDialogue();
+        });
 
         // Function to handle updates received from the server
         socket.on('update', function(data) {
@@ -655,8 +808,12 @@
             if (data.voice === "user") {
                 // Encode html tags and newlines
                 data.update = data.update.replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/[\n\r]/g, "<br>");
-                // Preserve spaces at the beginning of the line
-                data.update = data.update.replace(/ /g, "&nbsp;");
+                // Escape the ` character
+                data.update = data.update.replace(/`/g, "&grave;");
+                // Convert tabs to 4 spaces, convert all two or more spaces to &nbsp;
+                data.update = data.update.replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;").replace(/ /g, "&nbsp;");
+                // Convert any single &nbsp; sounded by characters on either side into a regular space ( )
+                data.update = data.update.replace(/&nbsp;([^&])/g, " $1").replace(/([^&])&nbsp;/g, "$1 ");
                 updateContainer.innerHTML += "<p class='user-text'>" + data.update + "</p>";
             }
 
@@ -684,14 +841,13 @@
                 messageContainer.innerHTML = messageText;
             }
 
-            if (data.voice === "model") {
-                getVersion();
-            }
-
             if (data.voice === "footer") {
                 // Update the footer with the update message
                 document.getElementById('footer').innerHTML = data.update +
                     ' - <a href="javascript:void(0);" onclick="requestConversation()">Debug Session</a>'
+                // Set my_model into session storage
+                setModel(data.model);
+                console.log('Model set:', data.model);
             }
 
             if (data.voice === "conversation") {
@@ -713,8 +869,18 @@
 
             if (data.voice === "image") {
                 // Display filename and image
-                updateContainer.innerHTML += `<p>Uploaded image: ${data.filename}</p>`;
+                if (data.generated) {
+                    updateContainer.innerHTML += `<p>Generated image</p>`;
+                } else {
+                    updateContainer.innerHTML += `<p>Uploaded image: ${data.filename}</p>`;
+                }
                 updateContainer.innerHTML += `<img src="data:image/png;base64,${data.image_data}" style="max-width: 50%; height: auto;">`;
+            }
+
+            // Handle document download
+            if (data.document_download) {
+                const downloadUrl = `/download/${data.document_download}`;
+                updateContainer.innerHTML += `<p class='user-text'><a href="${downloadUrl}" target="_blank" download style="color: #007bff; text-decoration: underline;">📄 Download ${data.document_download}</a></p>`;
             }
 
             // Ensure we always show the latest
@@ -835,6 +1001,12 @@
 
             // Fetch version and update footer
             getVersion();
+
+            // Check for my_model session storage
+            const model = getModel();
+            if (model) {
+                socket.emit('model', model);
+            }
         };
 
         // On window resize, scroll to the bottom of the message container

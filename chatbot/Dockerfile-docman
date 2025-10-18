@@ -8,14 +8,14 @@
 FROM python:3.10-slim
 
 # Setting build related env vars
-ENV MAX_CHUNK_SIZE 1024
-ENV UPLOAD_FOLDER uploads
-ENV WEAVIATE_HOST localhost
-ENV WEAVIATE_GRPC_HOST localhost
-ENV WEAVIATE_PORT 8080
-ENV WEAVIATE_GRPC_PORT 50051
-ENV PORT 5001
-ENV COLLECTIONS_ADMIN true
+ENV MAX_CHUNK_SIZE=1024
+ENV UPLOAD_FOLDER=uploads
+ENV WEAVIATE_HOST=localhost
+ENV WEAVIATE_GRPC_HOST=localhost
+ENV WEAVIATE_PORT=8080
+ENV WEAVIATE_GRPC_PORT=50051
+ENV PORT=5001
+ENV COLLECTIONS_ADMIN=true
 
 # Set the working directory
 WORKDIR /app
@@ -31,8 +31,7 @@ RUN pip install passlib bcrypt
 
 # Copy local files into container
 COPY docman.py /app/docman.py
-COPY documents.py /app/documents.py
-COPY version.py /app/version.py
+COPY app/rag/documents.py /app/documents.py
 COPY docman /app/docman
 COPY setup_pandoc.py /app/setup_pandoc.py
 

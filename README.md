@@ -4,6 +4,24 @@ TinyLLM? Yes, the name is a bit of a contradiction, but it means well. It's all 
 
 This project helps you build a small locally hosted LLM with a ChatGPT-like web interface using consumer grade hardware. To read more about my research with llama.cpp and LLMs, see [research.md](research.md).
 
+## Table of Contents
+
+- [Key Features](#key-features)
+- [Hardware Requirements](#hardware-requirements)
+- [Manual Setup](#manual-setup)
+- [Run a Local LLM](#run-a-local-llm)
+  - [Ollama Server (Option 1)](#ollama-server-option-1)
+  - [vLLM Server (Option 2)](#vllm-server-option-2)
+  - [Llama-cpp-python Server (Option 3)](#llama-cpp-python-server-option-3)
+- [Run a Chatbot](#run-a-chatbot)
+  - [Example Session](#example-session)
+  - [Read URLs](#read-urls)
+  - [Current News](#current-news)
+  - [Manual Setup](#manual-setup-1)
+- [LLM Models](#llm-models)
+- [LLM Tools](#llm-tools)
+- [References](#references)
+
 ## Key Features
 
 * Supports multiple LLMs (see list below)
@@ -69,7 +87,7 @@ If you use the TinyLLM Chatbot (see below) with Ollama, make sure you specify th
 
 ### vLLM Server (Option 2)
 
-vLLM offers a robust OpenAI API compatible web server that supports multiple simultaneous inference threads (sessions). It automatically downloads the models you specifdy from HuggingFace and runs extremely well in containers. vLLM requires GPUs with more VRAM since it uses non-quantized models. AWQ models are also available and more optimizations are underway in the project to reduce the memory footprint. Note, for GPUs with a compute capability of 6 or less, Pascal architecture (see [GPU table](https://github.com/jasonacox/TinyLLM/tree/main/vllm#nvidia-gpu-and-torch-architecture)), follow details [here](./vllm/) instead.
+vLLM offers a robust OpenAI API compatible web server that supports multiple simultaneous inference threads (sessions). It automatically downloads the models you specify from HuggingFace and runs extremely well in containers. vLLM requires GPUs with more VRAM since it uses non-quantized models. AWQ models are also available and more optimizations are underway in the project to reduce the memory footprint. Note, for GPUs with a compute capability of 6 or less, Pascal architecture (see [GPU table](https://github.com/jasonacox/TinyLLM/tree/main/vllm#nvidia-gpu-and-torch-architecture)), follow details [here](./vllm/) instead.
 
 ```bash
 # Build Container
@@ -208,11 +226,15 @@ Here are some suggested models that work well with vLLM.
 | Mistral v0.2 7B | None | [mistralai/Mistral-7B-Instruct-v0.2](https://huggingface.co/mistralai/Mistral-7B-Instruct-v0.2) | 32k | Apache 2 |
 | Mistral v0.1 7B AWQ | AWQ | [TheBloke/Mistral-7B-Instruct-v0.1-AWQ](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.1-AWQ) | 32k | Apache 2 |
 | Mixtral-8x7B | None | [mistralai/Mixtral-8x7B-Instruct-v0.1](https://huggingface.co/mistralai/Mixtral-8x7B-Instruct-v0.1) | 32k | Apache 2 |
+| Pixtral-12B-2409 12B Vision | None | [mistralai/Pixtral-12B-2409](https://huggingface.co/mistralai/Pixtral-12B-2409) | 128k | Apache 2 |
 | Meta Llama-3 8B | None | [meta-llama/Meta-Llama-3-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct) | 8k | Meta |
-| Qwen-2 7B | None | [Qwen/Qwen2-7B-Instruct](https://huggingface.co/Qwen/Qwen2-7B-Instruct) | 130k | Apache 2 |
+| Meta Llama-3.2 11B Vision | FP8 | [neuralmagic/Llama-3.2-11B-Vision-Instruct-FP8-dynamic](https://huggingface.co/neuralmagic/Llama-3.2-11B-Vision-Instruct-FP8-dynamic) | 128k | Meta |
+| Qwen-2.5 7B | None | [Qwen/Qwen2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) | 128k | Apache 2 |
 | Yi-1.5 9B | None | [01-ai/Yi-1.5-9B-Chat-16K](https://huggingface.co/01-ai/Yi-1.5-9B-Chat-16K) | 16k | Apache 2 |
 | Phi-3 Small 7B | None | [microsoft/Phi-3-small-8k-instruct](https://huggingface.co/microsoft/Phi-3-small-8k-instruct) | 16k | MIT |
 | Phi-3 Medium 14B | None | [microsoft/Phi-3-medium-4k-instruct](https://huggingface.co/microsoft/Phi-3-medium-4k-instruct) | 4k | MIT |
+| Phi-3.5 Vision 4B | None | [microsoft/Phi-3.5-vision-instruct](https://huggingface.co/microsoft/Phi-3.5-vision-instruct) | 128k | MIT |
+| Phi-4 14B | None | [microsoft/phi-4](https://huggingface.co/microsoft/phi-4) | 16k | MIT |
 
 ## LLM Tools
 
