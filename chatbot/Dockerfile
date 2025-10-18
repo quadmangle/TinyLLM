@@ -33,10 +33,24 @@ RUN pip install weaviate-client pdfreader pypandoc
 RUN pip install pandas openpyxl
 RUN pip install python-multipart
 RUN pip install pillow-heif
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+RUN pip install llmsherpa
+RUN pip install --upgrade transformers
+RUN pip install pysbd
+RUN pip install torch
+RUN pip install langchain_text_splitters
+=======
+>>>>>>> chunking_eval
 RUN pip install slowapi
 
 # Document generation dependencies
 RUN pip install reportlab python-docx openpyxl python-pptx
+<<<<<<< HEAD
+=======
+>>>>>>> main
+>>>>>>> chunking_eval
 
 # Copy local files into container
 COPY app /app/app
