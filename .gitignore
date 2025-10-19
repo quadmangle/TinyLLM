@@ -176,6 +176,23 @@ chatbot/tlocal
 chatbot/tt
 lab/t
 chatbot/uploads/?*.*
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+rag/weaviate/docker-compose.yml
+rag/weaviate/docker-compose.yml
+*.yml
+chatbot/weaviate_data/classifications.db
+chatbot/weaviate_data/migration1.19.filter2search.skip.flag
+chatbot/weaviate_data/migration1.19.filter2search.state
+chatbot/weaviate_data/migration1.22.fs.hierarchy
+chatbot/weaviate_data/modules.db
+chatbot/weaviate_data/schema.db
+chatbot/weaviate_data/tx.db
+rag/weaviate/docker-compose.yml
+.vscode/launch.json
+=======
+>>>>>>> chunking_eval
 chatbot/t2
 agents/m
 chatbot/d
@@ -183,3 +200,7 @@ images/output.png
 agents/moviebot.db
 agents/message.txt
 chatbot/localtest.sh
+<<<<<<< HEAD
+=======
+>>>>>>> main
+>>>>>>> chunking_eval

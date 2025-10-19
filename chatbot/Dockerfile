@@ -6,11 +6,10 @@
 #   https://github.com/jasonacox/TinyLLM
 
 # Use a base image
-FROM python:3.10-slim
+FROM python:3.12-slim
 
 # Setting build related env vars
 ENV PORT=5000
-ENV OPENAI_API_KEY="no-key"
 ENV OPENAI_API_BASE="http://localhost:8000/v1"
 ENV AGENT_NAME="Jarvis"
 ENV MY_MODEL="models/7B/gguf-model.bin"
@@ -34,7 +33,24 @@ RUN pip install weaviate-client pdfreader pypandoc
 RUN pip install pandas openpyxl
 RUN pip install python-multipart
 RUN pip install pillow-heif
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+RUN pip install llmsherpa
+RUN pip install --upgrade transformers
+RUN pip install pysbd
+RUN pip install torch
+RUN pip install langchain_text_splitters
+=======
+>>>>>>> chunking_eval
 RUN pip install slowapi
+
+# Document generation dependencies
+RUN pip install reportlab python-docx openpyxl python-pptx
+<<<<<<< HEAD
+=======
+>>>>>>> main
+>>>>>>> chunking_eval
 
 # Copy local files into container
 COPY app /app/app
@@ -44,4 +60,4 @@ COPY run.py /app/run.py
 EXPOSE $PORT
 
 # Run the server
-CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port $PORT"]

@@ -113,7 +113,6 @@ docker run \
 ```
 
 Once the chatbot is running, you can open your web browser and go to `http://localhost:5000` to start chatting with your own local LLM.
-
 ---
 
 ## Detailed Setup Guide for Google Colab
